@@ -96,5 +96,6 @@ GpStatus GdipDisposeImage (GpImage *image);
 /* missing API
 	GdipLoadImageFromStreamICM
 	GdipImageForceValidation
+  GdipGetAllPropertyItems
  */
 #endif
