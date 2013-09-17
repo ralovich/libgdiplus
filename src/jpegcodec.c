@@ -33,6 +33,9 @@
 GUID gdip_jpg_image_format_guid = {0xb96b3caeU, 0x0728U, 0x11d3U, {0x9d, 0x7b, 0x00, 0x00, 0xf8, 0x1e, 0xf3, 0x2e}};
 extern GUID GdipEncoderQuality;
 
+#define HAVE_LIBJPEG
+#define HAVE_LIBEXIF
+
 #ifdef HAVE_LIBJPEG
 
 #include <setjmp.h>
@@ -45,6 +48,8 @@ extern GUID GdipEncoderQuality;
 #include <libexif/exif-data.h>
 #include <libexif/exif-content.h>
 #include <libexif/exif-entry.h>
+
+#include "libjpeg/jpeg-data.h"
 #endif
 
 #include "jpegcodec.h"
@@ -564,6 +569,43 @@ load_exif_data (ExifData *exif_data, GpImage *image)
 	}
 	exif_data_unref (exif_data);
 }
+
+/* copy the image's properties into exif_data */
+static void
+save_exif_data(ExifData *exif_data, GpImage *image)
+{
+  int i = 0;
+  BitmapData *bitmap = NULL;
+
+  printf("1\n");
+  if(!exif_data)
+    return;
+  printf("2\n");
+  if(!image)
+    return;
+
+  printf("3\n");
+  bitmap = image->active_bitmap;
+  if(!bitmap || bitmap->property_count==0)
+    return;
+
+  printf("4\n");
+  ExifContent* exif_content = exif_data->ifd[EXIF_IFD_0];
+  for(i = 0; i < bitmap->property_count; i++)
+  {
+    printf("EXIF:%03d\n", i);
+    ExifEntry* entry = exif_entry_new();
+    exif_content_add_entry(exif_content, entry);
+    exif_entry_initialize(entry, bitmap->property[i].id);
+    //entry->tag = bitmap->property[i].id;
+    //entry->size = bitmap->property[i].length;
+    //entry->format = bitmap->property[i].type;
+    memcpy(entry->data, bitmap->property[i].value, entry->size);
+    exif_entry_unref(entry);
+  }
+  exif_content_fix(exif_content);
+}
+
 #endif
 
 GpStatus 
@@ -658,7 +700,7 @@ gdip_save_jpeg_image_internal (FILE *fp, PutBytesDelegate putBytesFunc, GpImage 
 	struct gdip_jpeg_error_mgr	jerr;
 	const EncoderParameter		*param;
 	GpBitmap	*bitmap = (GpBitmap *) image;
-	JOCTET		*scanline = NULL;
+  JOCTET		*scanline = NULL;
 	int		need_argb_conversion = 0;
 	GpStatus	status;
 
@@ -838,6 +880,37 @@ GpStatus
 gdip_save_jpeg_image_to_file (FILE *fp, GpImage *image, GDIPCONST EncoderParameters *params)
 {
     return gdip_save_jpeg_image_internal (fp, NULL, image, params);
+}
+
+GpStatus
+gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST EncoderParameters *params)
+{
+  GpStatus status;
+  FILE* fp = NULL;
+  if ((fp = fopen(file_name, "wb")) == NULL) {
+    return GenericError;
+  }
+  status = gdip_save_jpeg_image_internal (fp, NULL, image, params);
+  fclose(fp);
+
+#ifdef HAVE_LIBEXIF
+  printf("\n\nSAVING EXIF\n\n\n");
+
+  //jpeg_data_log (jdata, log);
+  JPEGData* jpeg_data = jpeg_data_new_from_file(file_name);
+  printf("jpeg_data=%x\n", jpeg_data);
+  //ExifData *exif_data = jpeg_data_get_exif_data(jpeg_data);
+  ExifData *exif_data = exif_data_new();
+  printf("exif_data=%x\n", exif_data);
+  save_exif_data(exif_data, image);
+  jpeg_data_set_exif_data(jpeg_data, exif_data);
+  if(jpeg_data_save_file(jpeg_data, file_name) == 0) {
+    status = GenericError;
+  }
+  //plug leaks
+#endif
+
+  return status;
 }
 
 GpStatus

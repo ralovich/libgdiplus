@@ -1045,6 +1045,8 @@ GdipLoadImageFromFile (GDIPCONST WCHAR *file, GpImage **image)
 	char		format_peek[MAX_CODEC_SIG_LENGTH];
 	int		format_peek_sz;
 	
+  printf("\n\nPATCHED LIBRARY\n\n\n");
+
 	if (!image || !file)
 		return InvalidParameter;
 	
@@ -1175,7 +1177,12 @@ GdipSaveImageToFile (GpImage *image, GDIPCONST WCHAR *file, GDIPCONST CLSID *enc
 		status = gdip_save_tiff_image_to_file ((BYTE*)file_name, image, params);
 		GdipFree (file_name);
 		return status;
-	}
+  } else if (format == JPEG) {
+    /* jpeg library has to open file itself so saving EXIF works */
+    status = gdip_save_jpeg_image_to_file2 (file_name, image, params);
+    GdipFree (file_name);
+    return status;
+  }
 	
 	if ((fp = fopen(file_name, "wb")) == NULL) {
 		GdipFree (file_name);
@@ -1192,9 +1199,9 @@ GdipSaveImageToFile (GpImage *image, GDIPCONST WCHAR *file, GDIPCONST CLSID *enc
 		case PNG:
 			status = gdip_save_png_image_to_file (fp, image, params);
 			break;
-		case JPEG:
-			status = gdip_save_jpeg_image_to_file (fp, image, params);
-			break;
+//		case JPEG:
+//			status = gdip_save_jpeg_image_to_file (fp, image, params);
+//			break;
 		default:
 			status = NotImplemented;
 			break;
