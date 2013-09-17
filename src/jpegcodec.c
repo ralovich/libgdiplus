@@ -280,7 +280,7 @@ gdip_load_jpeg_image_internal (struct jpeg_source_mgr *src, GpImage **image)
 	BYTE		*destbuf;
 	BYTE		*destptr;
 	BYTE		*lines[4] = {NULL, NULL, NULL, NULL};
-	GpStatus	status;
+  GpStatus	status = GenericError;
 	int		stride;
 	unsigned long long int size;
 
