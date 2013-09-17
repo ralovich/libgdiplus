@@ -72,6 +72,7 @@ GpStatus GdipGetImageFlags (GpImage *image, UINT *flags);
 GpStatus GdipGetImageRawFormat (GpImage *image, GUID *format);
 GpStatus GdipGetImagePixelFormat (GpImage *image, PixelFormat *format);
 GpStatus GdipGetImageThumbnail (GpImage *image, UINT thumbWidth, UINT thumbHeight, GpImage **thumbImage, GetThumbnailImageAbort callback, VOID* callBackData);
+GpStatus GdipGetAllPropertyItems (GpImage *image, UINT totalBufferSize, UINT numProperties, PropertyItem *allItems);
 GpStatus GetEncoderParameterListSize (GpImage *image, GDIPCONST CLSID *clsidEncoder, UINT *size);
 GpStatus GetEncoderParameterList (GpImage *image, GDIPCONST CLSID *clsidEncoder, UINT size, EncoderParameters *buffer);
 GpStatus GdipImageGetFrameDimensionsCount (GpImage *image, UINT *count);
@@ -96,6 +97,5 @@ GpStatus GdipDisposeImage (GpImage *image);
 /* missing API
 	GdipLoadImageFromStreamICM
 	GdipImageForceValidation
-  GdipGetAllPropertyItems
  */
 #endif
