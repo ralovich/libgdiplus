@@ -1,3 +1,5 @@
+SUBDIRS = libjpeg
+
 lib_LTLIBRARIES = libgdiplus.la
 
 libgdiplus_la_SOURCES = \
@@ -117,6 +119,6 @@ libgdiplus_la_SOURCES = \
 	wmfcodec.c			\
 	wmfcodec.h
 
-libgdiplus_la_LIBADD = $(GDIPLUS_LIBS)
+libgdiplus_la_LIBADD = $(GDIPLUS_LIBS) libjpeg/libjpeg.la
 
 INCLUDES = $(GDIPLUS_CFLAGS) -Wall -Wno-unused -Wno-format

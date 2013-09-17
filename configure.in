@@ -9,6 +9,7 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([config.h])
 AM_MAINTAINER_MODE
 AM_PROG_LIBTOOL
+AM_PROG_CC_C_O
 
 AC_C_BIGENDIAN
 
@@ -413,6 +414,7 @@ Makefile
 libgdiplus.pc
 libgdiplus0.spec
 src/Makefile
+src/libjpeg/Makefile
 tests/Makefile])
 
 echo "---"

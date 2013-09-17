@@ -16,7 +16,7 @@ LDADDS =					\
 	$(top_builddir)/src/libgdiplus.la
 
 noinst_PROGRAMS =			\
-	testgdi testbits testclip testreversepath
+	testgdi testbits testclip testreversepath testprops
 
 testgdi_DEPENDENCIES = $(TEST_DEPS)
 testgdi_LDADD = $(LDADDS)
@@ -42,8 +42,16 @@ testreversepath_SOURCES =	\
 testreversepath_DEPENDENCIES = $(TEST_DEPS)
 testreversepath_LDADD = $(LDADDS)
 
+testprops_SOURCES =	\
+	testprops.c testprops.h
+
+testprops_DEPENDENCIES = $(TEST_DEPS)
+testprops_LDADD = $(LDADDS)
+testprops_CPPFLAGS = -std=gnu99
+
 EXTRA_DIST =			\
 	$(testgdi_SOURCES)	\
 	$(testbits_SOURCES)	\
 	$(testclip_SOURCES)	\
-	$(testreversepath_SOURCES)
+	$(testreversepath_SOURCES) \
+	$(testprops_SOURCES)
