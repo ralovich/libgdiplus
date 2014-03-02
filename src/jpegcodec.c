@@ -544,6 +544,7 @@ add_properties_from_entry (ExifEntry *entry, void *user_data)
 	ULONG length;
 
 	gdip_bitmapdata_property_add (bitmap_data, entry->tag, entry->size, entry->format, entry->data);
+  printf("reading_%d\n", bitmap_data->property_count);
 }
 
 static void
@@ -570,11 +571,34 @@ load_exif_data (ExifData *exif_data, GpImage *image)
 	exif_data_unref (exif_data);
 }
 
-/* copy the image's properties into exif_data */
+void
+count(ExifEntry *entry, void *user_data)
+{
+  int* cnt = (int*)user_data;
+  (*cnt) += 1;
+  printf("count_%d\n", (*cnt));
+}
+
+void
+countContent(ExifContent *content, void *user_data)
+{
+  exif_content_foreach_entry (content, count, user_data);
+}
+
+static
+int
+tag_belongs_to_ifd(ExifTag tag, ExifIfd ifd, ExifDataType t)
+{
+  ExifSupportLevel esl = exif_tag_get_support_level_in_ifd(tag, ifd, t);
+
+  return 0;
+}
+
+/* copy the \c image's properties into \c exif_data */
 static void
 save_exif_data(ExifData *exif_data, GpImage *image)
 {
-  int i = 0;
+  int i = 0, j=0;
   BitmapData *bitmap = NULL;
 
   printf("1\n");
@@ -590,20 +614,36 @@ save_exif_data(ExifData *exif_data, GpImage *image)
     return;
 
   printf("4\n");
-  ExifContent* exif_content = exif_data->ifd[EXIF_IFD_0];
+  for(j=0;j<EXIF_IFD_COUNT;j++)
+  //j=0;
+  {
+  ExifContent* exif_content = exif_data->ifd[j];
   for(i = 0; i < bitmap->property_count; i++)
   {
     printf("EXIF:%03d\n", i);
     ExifEntry* entry = exif_entry_new();
     exif_content_add_entry(exif_content, entry);
     exif_entry_initialize(entry, bitmap->property[i].id);
+    //memcpy(entry->data, bitmap->property[i].value, entry->size);
+
     //entry->tag = bitmap->property[i].id;
     //entry->size = bitmap->property[i].length;
     //entry->format = bitmap->property[i].type;
+    //exif_set_rational();
+
+    if(entry->data) free(entry->data);
+    entry->components = bitmap->property[i].length;
+    entry->size = bitmap->property[i].length;
+    entry->data = malloc(entry->size);
     memcpy(entry->data, bitmap->property[i].value, entry->size);
+
     exif_entry_unref(entry);
   }
-  exif_content_fix(exif_content);
+  }
+  //exif_content_fix(exif_content);
+
+  int cnt = 0;
+  exif_data_foreach_content (exif_data, countContent, &cnt);
 }
 
 #endif
@@ -644,7 +684,9 @@ gdip_load_jpeg_image_from_file (FILE *fp, const char *filename, GpImage **image)
 	GdipFree (src);
 #ifdef HAVE_LIBEXIF
 	if (st == Ok) {
-		load_exif_data (exif_data_new_from_file (filename), *image);
+    ExifData* exif_data = exif_data_new_from_file (filename);
+    exif_data_dump(exif_data);
+    load_exif_data (exif_data, *image);
 	}
 #endif
 
@@ -896,13 +938,25 @@ gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST 
 #ifdef HAVE_LIBEXIF
   printf("\n\nSAVING EXIF\n\n\n");
 
+
   //jpeg_data_log (jdata, log);
   JPEGData* jpeg_data = jpeg_data_new_from_file(file_name);
   printf("jpeg_data=%x\n", jpeg_data);
   //ExifData *exif_data = jpeg_data_get_exif_data(jpeg_data);
   ExifData *exif_data = exif_data_new();
   printf("exif_data=%x\n", exif_data);
+
+  //  /* Override the default conversion options */
+  //  ed = exif_get_data_opts(l, log, 0, EXIF_DATA_TYPE_UNKNOWN);
+  //  /* Clear the slate before setting the requested options */
+  exif_data_unset_option (exif_data, ~0);
+  exif_data_set_option (exif_data, 0/*options*/);
+  exif_data_set_data_type (exif_data, EXIF_DATA_TYPE_UNKNOWN);
+  //  //exif_data_load_data (ed, buf, buf_size);
+
   save_exif_data(exif_data, image);
+  exif_data_fix(exif_data);
+  exif_data_dump(exif_data);
   jpeg_data_set_exif_data(jpeg_data, exif_data);
   if(jpeg_data_save_file(jpeg_data, file_name) == 0) {
     status = GenericError;

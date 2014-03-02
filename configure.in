@@ -399,6 +399,7 @@ if $x11_failed; then
    AC_ERROR("Failed to compile with X11/Xlib.h include.  You must fix your compiler paths")
 fi
 
+GDIPLUS_CFLAGS="$GDIPLUS_CFLAGS -g3"
 GDIPLUS_PKG_LIBS="$GDIPLUS_LIBS"
 GDIPLUS_PKG_CFLAGS="$GDIPLUS_CFLAGS"
  
@@ -434,5 +435,7 @@ echo ""
 echo "      NOTE: if any of the above say 'no' you may install the"
 echo "            corresponding development packages for them, rerun"
 echo "            autogen.sh to include them in the build."
+echo ""
+echo "GDIPLUS_CFLAGS=$GDIPLUS_CFLAGS"
 echo ""
 echo "---"

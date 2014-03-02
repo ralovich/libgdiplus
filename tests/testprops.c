@@ -152,9 +152,11 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
 
     status = GdipGetPropertyItem(nativeImage, propIDs[j], size, pi);
     CHECK_STATUS(1);
-    printf("%03d len=%d typ=%s %s\n", j, (int)pi->length,
+    printf("%03d len=%d typ=%s %s ", j, (int)pi->length,
            property_tag_type_to_str(pi->type), property_type_to_str(pi->id));
     if(pi->type == PropertyTagTypeASCII) printf("%s\n", (char*)pi->value);
+    else if(pi->type == PropertyTagTypeRational) printf("%lf\n", *((double*)pi->value));
+    else printf("\n");
 
     free(pi);
   }
@@ -205,6 +207,9 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
 
   return status;
 }
+
+//               9000-9214  A20B-A217  A300-A302       A401-A40C
+// gps IFD tags   00-1E
 
 
 GpStatus
