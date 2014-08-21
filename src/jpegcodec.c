@@ -33,8 +33,12 @@
 GUID gdip_jpg_image_format_guid = {0xb96b3caeU, 0x0728U, 0x11d3U, {0x9d, 0x7b, 0x00, 0x00, 0xf8, 0x1e, 0xf3, 0x2e}};
 extern GUID GdipEncoderQuality;
 
+#ifndef HAVE_LIBJPEG
 #define HAVE_LIBJPEG
+#endif
+#ifndef HAVE_LIBEXIF
 #define HAVE_LIBEXIF
+#endif
 
 #ifdef HAVE_LIBJPEG
 
@@ -746,6 +750,7 @@ gdip_save_jpeg_image_internal (FILE *fp, PutBytesDelegate putBytesFunc, GpImage 
 	int		need_argb_conversion = 0;
 	GpStatus	status;
 
+  printf("gdip_save_jpeg_image_internal");
 	/* Verify that we can support this pixel format */
 	switch (image->active_bitmap->pixel_format) {
 		case PixelFormat32bppARGB:
@@ -929,6 +934,9 @@ gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST 
 {
   GpStatus status;
   FILE* fp = NULL;
+
+  printf("gdip_save_jpeg_image_to_file2");
+
   if ((fp = fopen(file_name, "wb")) == NULL) {
     return GenericError;
   }
@@ -941,10 +949,10 @@ gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST 
 
   //jpeg_data_log (jdata, log);
   JPEGData* jpeg_data = jpeg_data_new_from_file(file_name);
-  printf("jpeg_data=%x\n", jpeg_data);
+  printf("jpeg_data=%p\n", jpeg_data);
   //ExifData *exif_data = jpeg_data_get_exif_data(jpeg_data);
   ExifData *exif_data = exif_data_new();
-  printf("exif_data=%x\n", exif_data);
+  printf("exif_data=%p\n", exif_data);
 
   //  /* Override the default conversion options */
   //  ed = exif_get_data_opts(l, log, 0, EXIF_DATA_TYPE_UNKNOWN);

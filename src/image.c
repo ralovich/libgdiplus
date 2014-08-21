@@ -1153,6 +1153,8 @@ GdipSaveImageToFile (GpImage *image, GDIPCONST WCHAR *file, GDIPCONST CLSID *enc
 	GpStatus status = 0;
 	char *file_name;
 	ImageFormat format;
+
+  printf("GdipSaveImageToFile\n");
 	
 	if (!image || !file || !encoderCLSID)
 		return InvalidParameter;
