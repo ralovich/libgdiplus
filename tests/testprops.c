@@ -64,9 +64,13 @@ GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
 #endif
     {
       *pClsid = pImageCodecInfo[j].Clsid;
+      free(u2);
+      free(u1);
       free(pImageCodecInfo);
       return j;  // Success
     }
+    free(u2);
+    free(u1);
   }
 
   free(pImageCodecInfo);
