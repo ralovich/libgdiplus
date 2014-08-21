@@ -548,13 +548,85 @@ add_properties_from_entry (ExifEntry *entry, void *user_data)
 	ULONG length;
 
 	gdip_bitmapdata_property_add (bitmap_data, entry->tag, entry->size, entry->format, entry->data);
-  printf("reading_%d\n", bitmap_data->property_count);
+  printf("add_properties_from_entry: %3d\n", bitmap_data->property_count);
 }
 
 static void
 add_properties_from_content (ExifContent *content, void *user_data)
 {
 	exif_content_foreach_entry (content, add_properties_from_entry, user_data);
+}
+
+/// Unfortunately gdip's PropertyItem doesn't store the IDF number. This means
+/// that different tags may be loaded with the same \c id.
+static void
+check_for_duplicate_properties(BitmapData *bitmap_data)
+{
+  int	property_count;
+  int k;
+
+  if (bitmap_data == NULL) {
+    return ;//InvalidParameter;
+  }
+
+  //property_count = bitmap_data->property_count;
+  for(property_count=0; property_count<bitmap_data->property_count; property_count++)
+  {
+    for(k=0; k<property_count; k++)
+    {
+      if(bitmap_data->property[property_count].id==bitmap_data->property[k].id)
+      {
+        printf("Warning: duplicate PropertyItem: @%d same as @%d: 0x%08x\n", property_count, k, bitmap_data->property[k].id);
+      }
+    }
+  }
+}
+
+static void
+filter_exif_data (ExifData *exif_data)
+{
+  int ifd,i,ifd0,i0;
+  int found;
+
+  // remove tags coming from interoperability IFD
+  ExifContent *ec = exif_data->ifd[EXIF_IFD_INTEROPERABILITY];
+  while(ec->count>0)
+  {
+    ExifEntry *ee = ec->entries[ec->count-1];
+    exif_content_remove_entry(ec, ee);
+    printf("filter_exif_data: %d\n", ec->count);
+  }
+
+  // remove the second/later instance of duplicated tags
+
+  for(ifd=0; ifd<EXIF_IFD_COUNT; ifd++)
+  {
+    ExifContent *ec = exif_data->ifd[ifd];
+    for(i=0; i< ec->count; )
+    {
+      found = 0;
+      for(ifd0=0; ifd0<ifd; ifd0++)
+      {
+        ExifContent *ec0 = exif_data->ifd[ifd0];
+        for(i0=0; i0< ec0->count; i0++)
+        {
+          if(ec->entries[i]->tag==ec0->entries[i0]->tag)
+          {
+            found=1;
+            break;
+          }
+        }
+        if(found==1)break;
+      }
+      if(found==1)
+      {
+        exif_content_remove_entry(ec, ec->entries[i]);
+        printf("filter_exif_data: %d\n", ec->count);
+      }
+      else
+        i++;
+    }
+  }
 }
 
 static void
@@ -567,12 +639,14 @@ load_exif_data (ExifData *exif_data, GpImage *image)
 		return;
 
 	bitmap = image->active_bitmap;
+  filter_exif_data (exif_data);
 	exif_data_foreach_content (exif_data, add_properties_from_content, bitmap);
 	/* thumbnail */
 	if (exif_data->size != 0) {
 		gdip_bitmapdata_property_add (bitmap, PropertyTagThumbnailData, exif_data->size, PropertyTagTypeByte, exif_data->data);
 	}
 	exif_data_unref (exif_data);
+  check_for_duplicate_properties(bitmap);
 }
 
 void
@@ -589,60 +663,79 @@ countContent(ExifContent *content, void *user_data)
   exif_content_foreach_entry (content, count, user_data);
 }
 
+// 0 - yes
+// 1 - no
 static
 int
-tag_belongs_to_ifd(ExifTag tag, ExifIfd ifd, ExifDataType t)
+tag_belongs_to_ifd(ExifTag tag, ExifIfd ifd/*, ExifDataType t*/)
 {
-  ExifSupportLevel esl = exif_tag_get_support_level_in_ifd(tag, ifd, t);
+  ExifSupportLevel esl = exif_tag_get_support_level_in_ifd(tag, ifd, /*t*/EXIF_DATA_TYPE_COMPRESSED);
 
-  return 0;
+  switch(esl)
+  {
+  case EXIF_SUPPORT_LEVEL_UNKNOWN:
+    return 1;
+  case EXIF_SUPPORT_LEVEL_NOT_RECORDED:
+    return 1;
+  case EXIF_SUPPORT_LEVEL_MANDATORY:
+    return 0;
+  case EXIF_SUPPORT_LEVEL_OPTIONAL:
+    return 0;
+  default:
+    return 1;
+  }
 }
 
 /* copy the \c image's properties into \c exif_data */
 static void
-save_exif_data(ExifData *exif_data, GpImage *image)
+save_exif_data(ExifData *exif_data, const GpImage *image)
 {
-  int i = 0, j=0;
+  int i = 0;
+  ExifIfd j=EXIF_IFD_0;
   BitmapData *bitmap = NULL;
 
-  printf("1\n");
+  printf("save_exif_data: 1\n");
   if(!exif_data)
     return;
-  printf("2\n");
+  printf("save_exif_data: 2\n");
   if(!image)
     return;
 
-  printf("3\n");
+  printf("save_exif_data: 3\n");
   bitmap = image->active_bitmap;
   if(!bitmap || bitmap->property_count==0)
     return;
 
-  printf("4\n");
-  for(j=0;j<EXIF_IFD_COUNT;j++)
+  printf("save_exif_data: 4\n");
+  for(j=EXIF_IFD_0;j<EXIF_IFD_COUNT;j++)
   //j=0;
   {
-  ExifContent* exif_content = exif_data->ifd[j];
-  for(i = 0; i < bitmap->property_count; i++)
-  {
-    printf("EXIF:%03d\n", i);
-    ExifEntry* entry = exif_entry_new();
-    exif_content_add_entry(exif_content, entry);
-    exif_entry_initialize(entry, bitmap->property[i].id);
-    //memcpy(entry->data, bitmap->property[i].value, entry->size);
+    ExifContent* exif_content = exif_data->ifd[j];
+    for(i = 0; i < bitmap->property_count; i++)
+    {
+      printf("EXIF:%03d\n", i);
 
-    //entry->tag = bitmap->property[i].id;
-    //entry->size = bitmap->property[i].length;
-    //entry->format = bitmap->property[i].type;
-    //exif_set_rational();
+      if(tag_belongs_to_ifd(bitmap->property[i].id, j)==0)
+      {
+        ExifEntry* entry = exif_entry_new();
+        exif_content_add_entry(exif_content, entry);
+        exif_entry_initialize(entry, bitmap->property[i].id);
+        //memcpy(entry->data, bitmap->property[i].value, entry->size);
 
-    if(entry->data) free(entry->data);
-    entry->components = bitmap->property[i].length;
-    entry->size = bitmap->property[i].length;
-    entry->data = malloc(entry->size);
-    memcpy(entry->data, bitmap->property[i].value, entry->size);
+        //entry->tag = bitmap->property[i].id;
+        //entry->size = bitmap->property[i].length;
+        //entry->format = bitmap->property[i].type;
+        //exif_set_rational();
 
-    exif_entry_unref(entry);
-  }
+        if(entry->data) free(entry->data);
+        entry->components = bitmap->property[i].length;
+        entry->size = bitmap->property[i].length;
+        entry->data = malloc(entry->size);
+        memcpy(entry->data, bitmap->property[i].value, entry->size);
+
+        exif_entry_unref(entry);
+      }
+    }
   }
   //exif_content_fix(exif_content);
 
@@ -662,6 +755,7 @@ gdip_load_jpeg_image_from_file (FILE *fp, const char *filename, GpImage **image)
 
 	gdip_stdio_jpeg_source_mgr_ptr src;
 
+  printf("gdip_load_jpeg_image_from_file\n");
 	src = (gdip_stdio_jpeg_source_mgr_ptr) GdipAlloc (sizeof (struct gdip_stdio_jpeg_source_mgr));
 	if (src == NULL) {
 		return OutOfMemory;
@@ -963,7 +1057,7 @@ gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST 
   //  //exif_data_load_data (ed, buf, buf_size);
 
   save_exif_data(exif_data, image);
-  exif_data_fix(exif_data);
+  //exif_data_fix(exif_data);
   exif_data_dump(exif_data);
   jpeg_data_set_exif_data(jpeg_data, exif_data);
   if(jpeg_data_save_file(jpeg_data, file_name) == 0) {

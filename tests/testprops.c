@@ -23,7 +23,7 @@ static int status_counter = 0;
       printf ("testprops.c:%d: status[%d] == %d: %s!\n", __LINE__, status_counter++, status, StatusToStr(status)); \
       if(x) { exit(-1); }                                               \
     } else {                                                            \
-      printf ("testprops.c:%d: status[%d] == Ok\n", __LINE__, status_counter++);                  \
+      /*printf ("testprops.c:%d: status[%d] == Ok\n", __LINE__, status_counter++);*/                  \
     }                                                                   \
   } while (0)
 
@@ -128,13 +128,17 @@ test1(const char16_t* filename, int propCnt)
   UINT numProperties;
   PropertyItem* pAllItems = NULL;
   UINT j = 0;
+  char* fn=0;
 
   status = GdipLoadImageFromFile(filename, &nativeImage);
   CHECK_STATUS(1);
+  fn=WCHAR_to_utf8(filename);
+  printf("GdipLoadImageFromFile: %s OK\n", fn);
+  free(fn);
 
   status = GdipGetPropertyCount(nativeImage, &numProps);
   CHECK_STATUS(1);
-  printf("load: numProps=%d\n", (int)numProps);
+  printf("GdipGetPropertyCount: numProps=%d\n", (int)numProps);
 
   status = (propCnt == (int)numProps) ? Ok : PropertyNotFound;
   CHECK_STATUS(0);
@@ -171,12 +175,15 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
   PropertyItem* pi = NULL;
   CLSID  clsid;
 
+  char* fn=WCHAR_to_utf8(filename);
+  printf("\nloading: %s\n", fn);
+  free(fn);
   status = GdipLoadImageFromFile(filename, &nativeImage);
   CHECK_STATUS(1);
 
   status = GdipGetPropertyCount(nativeImage, &numProps);
   CHECK_STATUS(1);
-  printf("load: numProps=%d\n", (int)numProps);
+  printf("GdipGetPropertyCount: numProps=%d\n", (int)numProps);
 
   propIDs = malloc( sizeof(PROPID) * numProps);
 
@@ -186,7 +193,7 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
   for(j = 0; j < numProps; ++j)
   {
     if(propIDs[j] == PropertyTagGpsLongitudeRef)
-      return -1;
+      return Aborted;
 
     status = GdipGetPropertyItemSize(nativeImage, propIDs[j], &size);
     CHECK_STATUS(1);
@@ -195,16 +202,17 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
 
     status = GdipGetPropertyItem(nativeImage, propIDs[j], size, pi);
     CHECK_STATUS(1);
-    printf("%03d len=%d typ=%s %s ", j, (int)pi->length,
-           property_tag_type_to_str(pi->type), property_type_to_str(pi->id));
-    if(pi->type == PropertyTagTypeASCII) printf("%s\n", (char*)pi->value);
-    else if(pi->type == PropertyTagTypeRational) printf("%lf\n", *((double*)pi->value));
-    else printf("\n");
+    //printf("%03d len=%d typ=%s %s ", j, (int)pi->length,
+    //       property_tag_type_to_str(pi->type), property_type_to_str(pi->id));
+    //if(pi->type == PropertyTagTypeASCII) printf("%s\n", (char*)pi->value);
+    //else if(pi->type == PropertyTagTypeRational) printf("%lf\n", *((double*)pi->value));
+    //else printf("\n");
 
     free(pi);
   }
   free(propIDs);
   const UINT firstNumProps = numProps;
+  printf("listing existing props OK\n");
 
 
   pi = malloc(sizeof(PropertyItem));
@@ -219,12 +227,13 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
   CHECK_STATUS(1);
   free(pi->value);
   free(pi);
+  printf("adding new prop OK\n");
 
   status = GdipGetPropertyCount(nativeImage, &numProps);
   CHECK_STATUS(1);
   printf("load: numProps=%d\n", (int)numProps);
   if(firstNumProps+1 != numProps)
-    return -2;
+    return WrongState;
 
   /* saving exif tags doesn't work
    * http://www.sentex.net/~mwandel/jhead/
@@ -236,11 +245,14 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
    * ./contrib/examples/cam_features.c:87:    jpeg_data_set_exif_data (pData, pEd);
    * ./contrib/examples/cam_features.c:89:    jpeg_data_save_file(pData, "foobar2.jpg");
    */
-  int enc = -1;
+  int enc = GenericError;
   enc = GetEncoderClsid(u"image/jpeg", &clsid);
-  if(enc<0) return -3;
+  if(enc<0) return NotImplemented;
   status = GdipSaveImageToFile(nativeImage, filename2, &clsid, NULL);
   CHECK_STATUS(1);
+  fn=WCHAR_to_utf8(filename2);
+  printf("saving to %s OK\n", fn);
+  free(fn);
 
   status = GdipDisposeImage(nativeImage);
   CHECK_STATUS(1);

@@ -1045,7 +1045,7 @@ GdipLoadImageFromFile (GDIPCONST WCHAR *file, GpImage **image)
 	char		format_peek[MAX_CODEC_SIG_LENGTH];
 	int		format_peek_sz;
 	
-  printf("\n\nPATCHED LIBRARY\n\n\n");
+  printf("\n\nGdipLoadImageFromFile: PATCHED LIBRARY\n\n\n");
 
 	if (!image || !file)
 		return InvalidParameter;
