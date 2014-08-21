@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <glib.h>
-#include <freetype/tttables.h>
+#include <freetype2/tttables.h>
 #include <pthread.h>
 #include <unistd.h>
 
