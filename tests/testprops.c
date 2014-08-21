@@ -18,9 +18,48 @@
 //typedef char16_t WCHAR;
 static int status_counter = 0;
 
-#define CHECK_STATUS(x) do { if (status != Ok) { printf ("status[%d] == %d!\n", status_counter++, status); if(x) { exit(-1); } } else { printf ("status[%d] == Ok\n", status_counter++); } } while (0)
+#define CHECK_STATUS(x) do {                                            \
+    if (status != Ok) {                                                 \
+      printf ("testprops.c:%d: status[%d] == %d: %s!\n", __LINE__, status_counter++, status, StatusToStr(status)); \
+      if(x) { exit(-1); }                                               \
+    } else {                                                            \
+      printf ("testprops.c:%d: status[%d] == Ok\n", __LINE__, status_counter++);                  \
+    }                                                                   \
+  } while (0)
 
 #include "testprops.h"
+
+const char*
+StatusToStr(const GpStatus status)
+{
+  switch(status)
+  {
+#define CASE_GP(x) case x: return #x
+    CASE_GP(Ok);
+    CASE_GP(GenericError);
+    CASE_GP(InvalidParameter);
+    CASE_GP(OutOfMemory);
+    CASE_GP(ObjectBusy);
+    CASE_GP(InsufficientBuffer);
+    CASE_GP(NotImplemented);
+    CASE_GP(Win32Error);
+    CASE_GP(WrongState);
+    CASE_GP(Aborted);
+    CASE_GP(FileNotFound);
+    CASE_GP(ValueOverflow);
+    CASE_GP(AccessDenied);
+    CASE_GP(UnknownImageFormat);
+    CASE_GP(FontFamilyNotFound);
+    CASE_GP(FontStyleNotFound);
+    CASE_GP(NotTrueTypeFont);
+    CASE_GP(UnsupportedGdiplusVersion);
+    CASE_GP(GdiplusNotInitialized);
+    CASE_GP(PropertyNotFound);
+    CASE_GP(PropertyNotSupported);
+#undef CASE_GP
+  default: return "unknown_GpStatus";
+    }
+}
 
 WCHAR*
 utf8_to_WCHAR(const char* u)
@@ -98,7 +137,7 @@ test1(const char16_t* filename, int propCnt)
   printf("load: numProps=%d\n", (int)numProps);
 
   status = (propCnt == (int)numProps) ? Ok : PropertyNotFound;
-  CHECK_STATUS(1);
+  CHECK_STATUS(0);
 
   status = GdipGetPropertySize(nativeImage, &totalBufferSize, &numProperties);
   CHECK_STATUS(1);
@@ -248,7 +287,7 @@ main (int argc, char **argv)
   /* read .jpg, add new EXIF tags, verify them afterwards */
   printf("\n\n====== Starting test2 ======\n");
   status = test2(u"2.jpg", u"2_testsave.jpg", 47);
-  CHECK_STATUS(1);
+  CHECK_STATUS(0);
   printf("====== test2 ALL OK ======\n\n\n");
 
   /* create image in memory, add exif tags, save as jpg, load
