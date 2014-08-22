@@ -548,7 +548,7 @@ add_properties_from_entry (ExifEntry *entry, void *user_data)
 	ULONG length;
 
 	gdip_bitmapdata_property_add (bitmap_data, entry->tag, entry->size, entry->format, entry->data);
-  printf("add_properties_from_entry: %3d\n", bitmap_data->property_count);
+  //printf("add_properties_from_entry: %3d\n", bitmap_data->property_count);
 }
 
 static void
@@ -597,8 +597,15 @@ filter_exif_data (ExifData *exif_data)
     printf("filter_exif_data: %d\n", ec->count);
   }
 
-  // remove the second/later instance of duplicated tags
+  ec = exif_data->ifd[EXIF_IFD_1];
+  while(ec->count>0)
+  {
+    ExifEntry *ee = ec->entries[ec->count-1];
+    exif_content_remove_entry(ec, ee);
+    printf("filter_exif_data: %d\n", ec->count);
+  }
 
+  // remove the second/later instance of duplicated tags
   for(ifd=0; ifd<EXIF_IFD_COUNT; ifd++)
   {
     ExifContent *ec = exif_data->ifd[ifd];
@@ -654,7 +661,7 @@ count(ExifEntry *entry, void *user_data)
 {
   int* cnt = (int*)user_data;
   (*cnt) += 1;
-  printf("count_%d\n", (*cnt));
+  //printf("count_%d\n", (*cnt));
 }
 
 void
@@ -710,10 +717,13 @@ save_exif_data(ExifData *exif_data, const GpImage *image)
   for(j=EXIF_IFD_0;j<EXIF_IFD_COUNT;j++)
   //j=0;
   {
+    if(j==EXIF_IFD_1) continue;
+    if(j==EXIF_IFD_INTEROPERABILITY) continue;
+
     ExifContent* exif_content = exif_data->ifd[j];
     for(i = 0; i < bitmap->property_count; i++)
     {
-      printf("EXIF:%03d\n", i);
+      //printf("EXIF:%03d\n", i);
 
       if(tag_belongs_to_ifd(bitmap->property[i].id, j)==0)
       {
@@ -739,8 +749,11 @@ save_exif_data(ExifData *exif_data, const GpImage *image)
   }
   //exif_content_fix(exif_content);
 
+  // TODO: add thumbnail too
+
   int cnt = 0;
   exif_data_foreach_content (exif_data, countContent, &cnt);
+  printf("saving: %d props\n", cnt);
 }
 
 #endif
@@ -1058,7 +1071,7 @@ gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST 
 
   save_exif_data(exif_data, image);
   //exif_data_fix(exif_data);
-  exif_data_dump(exif_data);
+  //exif_data_dump(exif_data);
   jpeg_data_set_exif_data(jpeg_data, exif_data);
   if(jpeg_data_save_file(jpeg_data, file_name) == 0) {
     status = GenericError;

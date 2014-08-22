@@ -151,7 +151,7 @@ test1(const char16_t* filename, int propCnt)
   CHECK_STATUS(1);
   for(j = 0; j < numProperties; ++j)
   {
-    printf("%x\n", pAllItems[j].id);
+    //printf("%x\n", pAllItems[j].id);
   }
   free(pAllItems);
 
