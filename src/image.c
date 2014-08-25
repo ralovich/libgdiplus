@@ -2111,6 +2111,7 @@ GdipSetPropertyItem(GpImage *image, GDIPCONST PropertyItem *item)
 	switch(image->image_format) {
 		case TIF:
 		case JPEG:
+		case MEMBMP:
 		case PNG: {
 			break;
 		}
