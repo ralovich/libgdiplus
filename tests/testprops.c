@@ -268,9 +268,46 @@ test2(const char16_t* filename, const char16_t* filename2, int propCnt)
 
 
 GpStatus
-test3()
+test3(const char16_t* filename2)
 {
+  int width=256;
+  int height=256;
   GpStatus status = Ok;
+  GpBitmap *bmp;
+  PropertyItem* pi = NULL;
+  CLSID  clsid;
+  char *fn;
+
+  status = GdipCreateBitmapFromScan0(width, height, 0, PixelFormat24bppRGB, NULL, &bmp);
+  CHECK_STATUS(1);
+  printf("mem create image OK\n");
+
+  pi = malloc(sizeof(PropertyItem));
+  pi->id = PropertyTagGpsLongitudeRef;
+  pi->length = 2;
+  pi->type = PropertyTagTypeASCII;
+  pi->value = malloc(pi->length);
+  char* str = pi->value;
+  str[0] = 'W';
+  str[1] = '\0';
+  status = GdipSetPropertyItem(bmp, pi);
+  CHECK_STATUS(1);
+  free(pi->value);
+  free(pi);
+  printf("adding new prop OK\n");
+
+  int enc = GenericError;
+  enc = GetEncoderClsid(u"image/jpeg", &clsid);
+  if(enc<0) return NotImplemented;
+  status = GdipSaveImageToFile(bmp, filename2, &clsid, NULL);
+  CHECK_STATUS(1);
+  fn=WCHAR_to_utf8(filename2);
+  printf("saving to %s OK\n", fn);
+  free(fn);
+
+  status = GdipDisposeImage(bmp);
+  CHECK_STATUS(1);
+
   return status;
 }
 
@@ -305,7 +342,7 @@ main (int argc, char **argv)
   /* create image in memory, add exif tags, save as jpg, load
    * separately, verify tags afterwards */
   printf("\n\n====== Starting test3 ======\n");
-  status = test3();
+  status = test3(u"3_testsave.jpg");
   CHECK_STATUS(1);
   printf("====== test3 ALL OK ======\n\n\n");
 
