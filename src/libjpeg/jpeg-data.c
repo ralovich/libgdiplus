@@ -185,9 +185,10 @@ jpeg_data_new_from_data (const unsigned char *d,
 	return (data);
 }
 
+/* populate data from d/size */
 void
 jpeg_data_load_data (JPEGData *data, const unsigned char *d,
-		     unsigned int size)
+         const unsigned int size)
 {
 	unsigned int i, o, len;
 	JPEGSection *s;
