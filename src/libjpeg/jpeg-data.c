@@ -115,7 +115,7 @@ jpeg_data_save_file (JPEGData *data, const char *path)
 }
 
 void
-jpeg_data_save_data (JPEGData *data, unsigned char **d, unsigned int *ds)
+jpeg_data_save_data (const JPEGData *data, unsigned char **d, unsigned int *ds)
 {
 	unsigned int i, eds = 0;
 	JPEGSection s;

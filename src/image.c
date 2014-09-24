@@ -1181,7 +1181,7 @@ GdipSaveImageToFile (GpImage *image, GDIPCONST WCHAR *file, GDIPCONST CLSID *enc
 		return status;
   } else if (format == JPEG) {
     /* jpeg library has to open file itself so saving EXIF works */
-    status = gdip_save_jpeg_image_to_file2 (file_name, image, params);
+    status = gdip_save_jpeg_image_to_file (file_name, image, params);
     GdipFree (file_name);
     return status;
   }

@@ -1000,6 +1000,9 @@ gdip_save_jpeg_image_internal (FILE *fp, PutBytesDelegate putBytesFunc, GpImage 
 	jpeg_finish_compress (&cinfo);
 	jpeg_destroy_compress (&cinfo);
 
+  /* add exif data, either to fp, or to dest*/
+  add_exif_for_saving(fp,dest);
+
 	if (dest != NULL) {
 		if (dest->buf != NULL) {
 			GdipFree (dest->buf);
@@ -1036,6 +1039,57 @@ gdip_save_jpeg_image_to_file (FILE *fp, GpImage *image, GDIPCONST EncoderParamet
     return gdip_save_jpeg_image_internal (fp, NULL, image, params);
 }
 
+void
+add_exif_for_saving(FILE* fp, gdip_stream_jpeg_dest_mgr_ptr	dest)
+{
+
+  if(fp)
+  {
+#ifdef HAVE_LIBEXIF
+    printf("\n\nSAVING EXIF TO FILE\n\n\n");
+
+
+    //jpeg_data_log (jdata, log);
+    JPEGData* jpeg_data = jpeg_data_new_from_file(file_name);
+    printf("jpeg_data=%p\n", jpeg_data);
+    //ExifData *exif_data = jpeg_data_get_exif_data(jpeg_data);
+    ExifData *exif_data = exif_data_new();
+    printf("exif_data=%p\n", exif_data);
+
+    //  /* Override the default conversion options */
+    //  ed = exif_get_data_opts(l, log, 0, EXIF_DATA_TYPE_UNKNOWN);
+    //  /* Clear the slate before setting the requested options */
+    exif_data_unset_option (exif_data, ~0);
+    exif_data_set_option (exif_data, 0/*options*/);
+    exif_data_set_data_type (exif_data, EXIF_DATA_TYPE_UNKNOWN);
+    //  //exif_data_load_data (ed, buf, buf_size);
+
+    save_exif_data(exif_data, image);
+    //exif_data_fix(exif_data);
+    //exif_data_dump(exif_data);
+    jpeg_data_set_exif_data(jpeg_data, exif_data);
+    if(jpeg_data_save_file(jpeg_data, file_name) == 0) {
+      status = GenericError;
+    }
+    //plug leaks
+#endif
+  }
+  else
+  {
+    printf("\n\nSAVING EXIF TO STREAM\n\n\n");
+
+    JPEGData *data;
+    unsigned char *d;
+    unsigned int size;
+    data = jpeg_data_new ();
+
+    jpeg_data_load_data (data, d, size);
+
+    ExifData *exif_data = exif_data_new();
+  }
+
+}
+
 GpStatus
 gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST EncoderParameters *params)
 {
@@ -1049,35 +1103,6 @@ gdip_save_jpeg_image_to_file2 (const char* file_name, GpImage *image, GDIPCONST 
   }
   status = gdip_save_jpeg_image_internal (fp, NULL, image, params);
   fclose(fp);
-
-#ifdef HAVE_LIBEXIF
-  printf("\n\nSAVING EXIF\n\n\n");
-
-
-  //jpeg_data_log (jdata, log);
-  JPEGData* jpeg_data = jpeg_data_new_from_file(file_name);
-  printf("jpeg_data=%p\n", jpeg_data);
-  //ExifData *exif_data = jpeg_data_get_exif_data(jpeg_data);
-  ExifData *exif_data = exif_data_new();
-  printf("exif_data=%p\n", exif_data);
-
-  //  /* Override the default conversion options */
-  //  ed = exif_get_data_opts(l, log, 0, EXIF_DATA_TYPE_UNKNOWN);
-  //  /* Clear the slate before setting the requested options */
-  exif_data_unset_option (exif_data, ~0);
-  exif_data_set_option (exif_data, 0/*options*/);
-  exif_data_set_data_type (exif_data, EXIF_DATA_TYPE_UNKNOWN);
-  //  //exif_data_load_data (ed, buf, buf_size);
-
-  save_exif_data(exif_data, image);
-  //exif_data_fix(exif_data);
-  //exif_data_dump(exif_data);
-  jpeg_data_set_exif_data(jpeg_data, exif_data);
-  if(jpeg_data_save_file(jpeg_data, file_name) == 0) {
-    status = GenericError;
-  }
-  //plug leaks
-#endif
 
   return status;
 }

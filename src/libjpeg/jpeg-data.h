@@ -74,7 +74,7 @@ void      jpeg_data_free  (JPEGData *data);
 
 void      jpeg_data_load_data     (JPEGData *data, const unsigned char *d,
            const unsigned int size);
-void      jpeg_data_save_data     (JPEGData *data, unsigned char **d,
+void      jpeg_data_save_data     (const JPEGData *data, unsigned char **d,
 				   unsigned int *size);
 
 void      jpeg_data_load_file     (JPEGData *data, const char *path);
